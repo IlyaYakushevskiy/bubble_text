@@ -1,0 +1,435 @@
+ <script>
+  let allowedLinks = ['https://jarvis.ua/', 'https://jarvis.ua/contact-us'];
+    if (allowedLinks.includes(document.location.href)) {
+  let headd = document.getElementsByTagName('head')[0];
+let scr = document.createElement('script');
+scr.type = 'application/ld+json';
+data = {
+"@context": "https://schema.org",
+"@type": "LocalBusiness",
+"name": "JARVIS",
+"image": {
+  "@type": "ImageObject",
+  "url": "https://jarvis.ua/image/catalog/logo/logo.png",
+  "width": 1408,
+  "height": 391,
+  "caption": "Лого"
+},
+"logo": {
+  "@type": "ImageObject",
+  "url": "https://jarvis.ua/image/catalog/logo/logo.png",
+  "width": 1408,
+  "height": 391,
+  "caption": "Лого"
+},
+"founder": {
+  "@type": "Person",
+  "name": "Илья",
+  "url": "https://jarvis.ua/about_us.html",
+  "sameAs": "https://www.instagram.com/jarvis.kiev.ua"
+},
+"foundingDate": "2020-03-08",
+"numberOfEmployees": {
+  "@type": "QuantitativeValue",
+  "value": "5"
+},
+"slogan": "Лучшие товары по самым низким ценам!",
+"inLanguage": "ru-UA",
+"description": "Jarvis.ua - здесь вы можете найти лучшие товары по самым низким ценам.",
+"url": "https://jarvis.ua/",
+"priceRange": "от 40 грн до 1140 грн",
+"sameAs": [
+  "https://www.facebook.com/jarvis.ua",
+  "https://www.instagram.com/jarvis.kiev.ua",
+  "https://www.youtube.com/channel/UCXogFxkoezJa8gJxMWQdhzQ"
+]
+};
+scr.innerHTML = JSON.stringify(data);
+headd.appendChild(scr);
+}
+  </script>
+  <script>
+  
+    
+  let head = document.getElementsByTagName('head')[0];
+  let linkEl = document.createElement('link');
+  linkEl.rel = 'canonical';
+
+  let link = window.location.href.split('?')[0];
+  linkEl.href = link;
+  head.appendChild(linkEl);
+  </script>
+  <script>
+  if (window.location.href.split("?")[1]) {
+    let utms = window.location.href.split("?")[1].split("&");
+    for (let utm of utms) {
+      if (utm.startsWith('utm_source')) {
+          let source = utm.split("=")[1];
+          document.cookie = `source=${source}; domain=jarvis.ua; max-age=604800; path=/`;
+        }
+    }
+  }  
+  
+  fetch('https://jarvis.ua/questions.json').then(function(response) {
+    response.json().then(function(json) {
+        window.faqQuestions = json;
+    });
+}).catch(err => {console.log(err)});
+    
+    
+  // JARVIS-Assistent Bubble Text
+
+  fetch('https://jarvis.ua/jarvissay.json').then(function(response) {
+    response.json().then(function(json) {
+        window.jarvisSay = json;
+        window.bigLink = window.location.href.split("#")[0];
+      let link = window.location.href.split("#")[0].split("?")[0];
+        const fullLink = link;
+        let isFullLink = link.endsWith('.html');
+        let notInException = true;
+    
+        while (true) {
+          let arr = link.split('/');
+          if (jarvisSay[link] || arr.length <= 2) break;
+          arr.pop();
+          link = arr.join('/');
+        }
+        if (jarvisSay[link]) {
+          if (jarvisSay[link]['exceptions']) {
+            if (jarvisSay[link]['exceptions'].includes(fullLink)) {
+              notInException = false;
+            }
+          }
+        }	
+        
+        if (jarvisSay[link] && notInException || jarvisSay[bigLink]) {
+          let cookieSaykd = getCookie('saykd') || '[]';
+          let saykd = JSON.parse(cookieSaykd);
+    
+          if (jarvisSay[bigLink] && !saykd.includes(jarvisSay[bigLink]['text'])) {
+            setTimeout(() => say(jarvisSay[bigLink]), jarvisSay[bigLink]['timeout'] || 8000);
+            saykd.push(jarvisSay[bigLink]['text']);
+            let SaykdString = JSON.stringify(saykd);
+            document.cookie = 'saykd=' + SaykdString + '; domain=jarvis.ua; max-age=420; path=/';
+          } else if (!saykd.includes(jarvisSay[link]['text'])) {
+            setTimeout(() => say(jarvisSay[link]), jarvisSay[link]['timeout'] || 8000);
+            saykd.push(jarvisSay[link]['text']);
+            let SaykdString = JSON.stringify(saykd);
+            document.cookie = 'saykd=' + SaykdString + '; domain=jarvis.ua; max-age=420; path=/';
+          }
+        }
+    });
+}).catch(err => {console.log(err)});
+    
+  // End of Bubble Text
+    
+  function sendToIframe(object) {
+      const frameElem = document.querySelector('.dialogflow');
+      const message = JSON.stringify(object);
+      frameElem.contentWindow.postMessage(message, '*');
+  }
+  
+  window.addEventListener('message', function(command) {
+      console.log(command.data);
+    if (command.data == 'getQuestions') {
+        sendToIframe(faqQuestions);
+      }
+      if (command.data == 'hideLoading') {
+        hideLoading();
+      }
+      if (command.data == 'showLoading') {
+        showLoading();
+      }
+  });
+  
+  window.SayElement = {
+    showElement : function (element) {
+        element.style.visibility = 'visible';
+          element.style.opacity = '1';
+          element.style.transition = '.55s opacity, .55s visibility';
+      },
+      hideElement : function (element) {
+        element.style.visibility = 'hidden';
+          element.style.opacity = '0';
+          element.style.transition = '.55s opacity, .55s visibility';
+      }
+  };
+    
+  function getCookie(name) {
+    let matches = document.cookie.match(new RegExp(
+    "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+    ));
+    return matches ? decodeURIComponent(matches[1]) : undefined;
+}
+    
+  function say(object) {
+    const dialogBubble = document.querySelector('.dialogcircle');
+      const dialogText = document.querySelector('.dialogcircletext');
+      const dialogCross = document.querySelector('.dialogcirclecross');
+      dialogCross.addEventListener('click', function () {
+        SayElement.hideElement(dialogBubble);
+        SayElement.hideElement(dialogCross);
+        let button = document.querySelector('.dialogcirclebuttondiv');
+        button && SayElement.hideElement(button);
+        clearTimeout(buttonTimeout);
+        clearTimeout(windowTimeout);
+    })
+      dialogText.innerHTML = object.text;
+      if (object.buttonText && object.buttonLink) {
+        let buttonDiv = document.createElement('div');
+      buttonDiv.className = '.dialogcirclebuttondiv';
+        buttonDiv.style.visibility = "hidden";
+        buttonDiv.style.opacity = "0";
+        buttonDiv.style.display = "flex";
+        buttonDiv.style.justifyContent = "center";
+    
+        dialogText.append(buttonDiv);
+        
+        let butt = document.createElement('button');
+        butt.className = '.dialogcirclebutton';
+        butt.innerHTML = object.buttonText;
+        butt.style.background = '#3B55E6';
+        butt.style.color = '#fff';
+        butt.style.padding = '1rem';
+        butt.style.border = '.1rem solid transparent';
+        butt.style.borderRadius = '1.6rem';
+        butt.setAttribute("onclick", object.buttonLink); 		
+    
+        buttonDiv.append(butt);
+        
+        if (!object.buttonLink.startsWith('https')) {
+          butt.addEventListener('click', function (e) {
+            e.preventDefault();
+  
+          let blockId = object.buttonLink;
+  
+          document.getElementById(blockId).scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+          })
+        })
+        } else {
+          butt.addEventListener('click', function () {
+            window.location.href = object.buttonLink;
+        })
+        }
+
+    
+        SayElement.showElement(buttonDiv);
+        window.buttonTimeout = setTimeout(() => SayElement.hideElement(buttonDiv), 31000);
+      }
+      
+    SayElement.showElement(dialogBubble);
+      SayElement.showElement(dialogCross);
+    
+      window.windowTimeout = setTimeout(() => {SayElement.hideElement(dialogBubble); SayElement.hideElement(dialogCross);}, 30000);
+  }
+    
+    /*function showDialogButton(dialogButton) {
+    dialogButton.style.visibility = 'visible';
+      dialogButton.style.opacity = '1';
+      dialogButton.style.transition = '.55s opacity, .55s visibility';
+  }
+   
+  function hideDialogButton(dialogButton) {
+    dialogButton.style.visibility = 'hidden';
+      dialogButton.style.opacity = '0';
+      dialogButton.style.transition = '.55s opacity, .55s visibility';
+  }
+    
+  function showBubble(dialogBubble) {
+    dialogBubble.style.visibility = 'visible';
+      dialogBubble.style.opacity = '1';
+      dialogBubble.style.transition = '.55s opacity, .55s visibility';
+  }
+    
+  function hideBubble(dialogBubble) {
+    dialogBubble.style.visibility = 'hidden';
+      dialogBubble.style.opacity = '0';
+      dialogBubble.style.transition = '.55s opacity, .55s visibility';
+    }*/
+    
+  function hideLoading() {
+      const loadingBackground = document.querySelector('.loadingbackground');
+    loadingBackground.style.visibility = 'hidden';
+      loadingBackground.style.opacity = '0';
+  }
+    
+  function showLoading() {
+      const loadingBackground = document.querySelector('.loadingbackground');
+    loadingBackground.style.visibility = 'visible';
+      loadingBackground.style.opacity = '1';
+  }
+    
+  function load() {
+      let iframe = document.createElement('iframe');
+      iframe.className = 'dialogflow';
+      iframe.style.visibility = 'hidden';
+      iframe.style.opacity = '0';
+      iframe.width = '350';
+      iframe.height = '430';
+      iframe.allow = 'microphone;';
+      iframe.src = 'https://mammoth-breakffast.surge.sh';
+    
+      let dialogButton = document.querySelector('.dialogbutton');
+    let dialogCross = document.querySelector('.dialogcross');
+    
+      dialogButton.setAttribute('start', '1');
+    
+      dialogButton.addEventListener("click", openWindow, false);
+    dialogCross.addEventListener("click", closeWindow, false);
+    
+    
+    function openWindow() {
+        if (dialogButton.getAttribute('start') == 1) {
+          dialogButton.after(iframe);
+          showLoading();
+          dialogButton.setAttribute('start', '0');
+        }
+    
+        let dialogFlow = document.querySelector('.dialogflow');
+        let loadingBackground = document.querySelector('.loadingbackground');
+        dialogFlow.style.visibility = 'visible';
+        dialogFlow.style.opacity = '1';
+        dialogFlow.style.transition = '.55s opacity, .55s visibility';
+    
+        dialogCross.style.visibility = 'visible';
+        dialogCross.style.opacity = '1';
+        dialogCross.style.transition = '.55s opacity, .55s visibility';
+      }
+    
+      function closeWindow() {
+        let dialogFlow = document.querySelector('.dialogflow');
+        dialogFlow.style.visibility = 'hidden';
+        dialogFlow.style.opacity = '0';
+        dialogFlow.style.transition = '.55s opacity, .55s visibility';
+    
+        dialogCross.style.visibility = 'hidden';
+        dialogCross.style.opacity = '0';
+        dialogCross.style.transition = '.55s opacity, .55s visibility';
+        
+        hideLoading();
+      }
+}
+  
+  function showAllInBundle() {
+  let secondInBundleImage = document.querySelector("#anchor-4 > div > div > div.set__body.js-set-container > div > div.col-xl-6 > div > div > div > div:nth-child(2) > div > div > div > div.products__item-images > a > img")
+  if (secondInBundleImage) {
+      secondInBundleImage.src = secondInBundleImage.getAttribute('data-lazy');
+    }
+  }
+    
+  function discountPriceInSet() {
+    let secondInSet = document.querySelector("#anchor-4 div:nth-child(2) > div > div > div > div.products__item-desc > span.products__item-price");
+      if (secondInSet) {
+        let price = parseInt(secondInSet.getAttribute('price'));
+        let discount = parseInt(secondInSet.getAttribute('discount'));
+        let u = document.createElement('u');
+      u.innerHTML = `${price}грн.`;
+        secondInSet.innerHTML = '';
+        secondInSet.append(u);
+        secondInSet.innerHTML += `${price-discount}грн.`;
+      }
+  }
+    
+  </script>
+  
+  <script>
+    window.onload = function () {
+    	showAllInBundle(); discountPriceInSet(); promoPriceSlash();
+    }
+  function promoPriceSlash() {
+    
+    /*window.blackFridayMenuButton = document.querySelector("body > div.app.app--v1 > header > nav > div > div.nav__priority.priority-nav.priority-nav-has-dropdown > ul > li:nth-child(2) > a");
+      if (blackFridayMenuButton) {
+        blackFridayMenuButton.innerHTML = 'Скидки';
+    alert('aa');
+      }
+    
+    window.blackFridayMenuPhoneButton = document.querySelector("body > div.app.app--v1 > header > nav > div > div.nav__mobile > ul > li > div > div > div.nav__list-body > ul > li:nth-child(1) > a");
+      if (blackFridayMenuPhoneButton) {
+        blackFridayMenuPhoneButton.innerHTML = 'Скидки';
+        alert('bb');
+    }*/
+    
+      let promoPrices = document.querySelectorAll("p.promo__item-price");
+    
+      if (promoPrices) {
+        for (let price of promoPrices) {
+          let priceText = price.innerHTML;
+      let priceArr = price.innerHTML.split('₴');
+      let priceCount = priceArr.length - 1;
+      if (priceCount === 2) {
+        let u = document.createElement('u');
+            let div = document.createElement('div');
+            div.className = 'sku__promo__price';
+            u.innerHTML = `${priceArr[0]}₴`;
+            div.append(u);
+            div.innerHTML += `${priceArr[1]}₴`;
+            price.innerHTML = '';
+            price.append(div);
+        
+          }
+      }
+      }
+  }
+  
+ <div style="visibility:hidden; opacity: 0;" class="dialogcircle">
+<img style="visibility:hidden; opacity: 0;" src="[https://jarvis.kiev.ua/image/catalog/png-transparent-computer-icons-cross-delete-button-desktop-treasure-map-logo-line-icon-design-thumbnail.png](https://jarvis.kiev.ua/image/catalog/png-transparent-computer-icons-cross-delete-button-desktop-treasure-map-logo-line-icon-design-thumbnail.png)" class="dialogcirclecross" alt='jarvis say cross'>
+<div class="dialogcircletext"></div>
+</div>
+<img style="visibility:hidden; opacity: 0;" src="[https://jarvis.kiev.ua/image/catalog/png-transparent-computer-icons-cross-delete-button-desktop-treasure-map-logo-line-icon-design-thumbnail.png](https://jarvis.kiev.ua/image/catalog/png-transparent-computer-icons-cross-delete-button-desktop-treasure-map-logo-line-icon-design-thumbnail.png)" class="dialogcross" alt='window cross'>
+<div class="loadingbackground" style="visibility:hidden; opacity: 0;">
+<img src="[https://jarvis.kiev.ua/image/catalog/loading.gif](https://jarvis.kiev.ua/image/catalog/loading.gif)" class="loadinggif" alt="loading gif">
+</div>
+<img src="[https://jarvis.kiev.ua/image/catalog/assistant-button3.png](https://jarvis.kiev.ua/image/catalog/assistant-button3.png)" class="dialogbutton" onload="load(); setTimeout(() => {showAllInBundle(); discountPriceInSet(); promoPriceSlash();}, 500);" alt="window button">
+
+    
+<iframe class="dialogflow" style=" visibility: visible; opacity: 1;" width="350" height="430" allow="microphone;" src="[https://jarvisassistent5.surge.sh/](https://jarvisassistent5.surge.sh/)"></iframe>
+<div style="visibility:hidden; opacity: 0;" class="dialogcircle">
+<img style="visibility:hidden; opacity: 0;" src="[https://jarvis.kiev.ua/image/catalog/png-transparent-computer-icons-cross-delete-button-desktop-treasure-map-logo-line-icon-design-thumbnail.png](https://jarvis.kiev.ua/image/catalog/png-transparent-computer-icons-cross-delete-button-desktop-treasure-map-logo-line-icon-design-thumbnail.png)" class="dialogcirclecross" alt='jarvis say cross'>
+<div class="dialogcircletext"></div>
+</div>
+<img style="visibility:hidden; opacity: 0;" src="[https://jarvis.kiev.ua/image/catalog/png-transparent-computer-icons-cross-delete-button-desktop-treasure-map-logo-line-icon-design-thumbnail.png](https://jarvis.kiev.ua/image/catalog/png-transparent-computer-icons-cross-delete-button-desktop-treasure-map-logo-line-icon-design-thumbnail.png)" class="dialogcross" alt='window cross'>
+<div class="loadingbackground" style="visibility:hidden; opacity: 0;">
+<img src="[https://jarvis.kiev.ua/image/catalog/loading.gif](https://jarvis.kiev.ua/image/catalog/loading.gif)" class="loadinggif" alt="loading gif">
+</div>
+<img src="[https://jarvis.kiev.ua/image/catalog/assistant-button3.png](https://jarvis.kiev.ua/image/catalog/assistant-button3.png)" class="dialogbutton" onload="load(); setTimeout(() => {showAllInBundle(); discountPriceInSet(); promoPriceSlash();}, 500);" alt="window button">
+
+<iframe class="dialogflow" style="visibility:hidden; opacity: 0;" width="350" height="430" allow="microphone;" src="[https://jarvisassistent5.surge.sh/](https://jarvisassistent5.surge.sh/)"></iframe> 
+  <div class="app app--v{{ header_type }}">
+    <!-- Popups :: Start-->
+  <!--noindex-->
+    <div class="popup popup--570" style="display: none;" id="signin" onload="seo();">
+      <button class="popup__close" data-fancybox-close>
+        <svg class="icon-close">
+          <use xlink:href="catalog/view/theme/technics/sprites/sprite.svg#icon-close"></use>
+        </svg>
+      </button>
+      <div class="signin">
+        <div class="row">
+          <div class="col-12 col-md-12">
+            <div class="signin__head"><span class="signin__title">{{ text_account_title }}</span></div>
+            <div class="signin__body">
+              <form action="{{ login }}" enctype="multipart/form-data" id="loginform" method="post">
+                <label class="ui-label">{{ text_technics_email }}</label>
+                <div class="ui-field">
+                  <input class="ui-input" type="email" name="email" placeholder="{{ text_technics_email }}" required>
+                </div>
+                <label class="ui-label">{{ text_account_password }}</label>
+                <div class="ui-field">
+                  <input class="ui-input" type="password" name="password" placeholder="{{ text_account_password }}" required>
+        <a href="{{ forgotten }}">{{ text_forgotten }}</a>
+                </div>
+                <div class="signin__action">
+        <button class="btn btn--blue" form="loginform" type="submit">{{ text_account_submit }}</button>
+        <a class="btn btn--link" href="{{ register }}">{{ text_register }}</a>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+   </div>
+    </script>
